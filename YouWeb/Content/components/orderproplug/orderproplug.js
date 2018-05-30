@@ -21,6 +21,10 @@ Vue.component('orderproplug', function (h, params) {
                     Table: {
                         Columns: [
                         {
+                            title: '项目编号',
+                            key: 'ProjectSerialId'
+                        },
+                        {
                             title: '材料名称',
                             key: 'Material'
                         },

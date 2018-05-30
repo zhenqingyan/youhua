@@ -156,14 +156,13 @@ namespace YouBll
                 DateTime deliveryDate;
                 if (!DateTime.TryParse(orderInfos[i][3].Replace('/', '-'),out deliveryDate))
                 {
-                    deliveryDate = DateTime.Now;
+                    deliveryDate = DateTime.MinValue;
                 }
 
                 var orderInfo = new OrderInfo()
                 {
                     CreateTime = DateTime.Now,
                     Creator = user.UserName,
-                    DeliveryDate = deliveryDate,
                     SerialId = orderInfos[i][0],
                     Modifier = user.UserName,
                     ModifyTime = DateTime.Now,

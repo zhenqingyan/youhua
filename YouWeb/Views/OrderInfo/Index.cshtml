@@ -244,30 +244,6 @@
                                         key: 'SerialId'
                                     },
                                     {
-                                        title: '项目号',
-                                        key: 'ProjectNo'
-                                    },
-                                    {
-                                        title: '版本',
-                                        key: 'Version'
-                                    },
-                                    {
-                                        title: '短文本',
-                                        key: 'ShortText'
-                                    },
-                                    {
-                                        title: '检查控制计划',
-                                        key: 'TestingPlan'
-                                    },
-                                    {
-                                        title: '是否开票',
-                                        key: 'IsTicket'
-                                    },
-                                    {
-                                        title: '友华交期',
-                                        key: 'YouhuaDate'
-                                    },
-                                    {
                                         title: '备注',
                                         key: 'Remark'
                                     },
@@ -277,20 +253,20 @@
                                         render: (h, params) => {
                                             if (params.row.Status == 0) {
                                                 return h('div', [
-                                                    h('Button', {
-                                                        props: {
-                                                            type: 'info'
-                                                        },
-                                                        on: {
-                                                            'click': function () {
-                                                                _self.insertProductModal.data = $.extend(true,
-                                                                    {},
-                                                                    defaultData.formItem,
-                                                                    { SerialId: params.row.SerialId });
-                                                                _self.insertProductModal.isShow = true;
-                                                            }
-                                                        }
-                                                    }, '添加材料'),
+                                                    //h('Button', {
+                                                    //    props: {
+                                                    //        type: 'info'
+                                                    //    },
+                                                    //    on: {
+                                                    //        'click': function () {
+                                                    //            _self.insertProductModal.data = $.extend(true,
+                                                    //                {},
+                                                    //                defaultData.formItem,
+                                                    //                { SerialId: params.row.SerialId });
+                                                    //            _self.insertProductModal.isShow = true;
+                                                    //        }
+                                                    //    }
+                                                    //}, '添加材料'),
                                                     h('Button', {
                                                         props: {
                                                             type: 'info'

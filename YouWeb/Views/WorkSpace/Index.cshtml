@@ -140,38 +140,10 @@
        <div>
            <i-form ref="orderInfo" v-bind:model="orderInfo" v-bind:label-width="80">
                <Row>
-                   <i-col span="12">
+                   <i-col span="24">
                        <form-item label="订单号">
                            <span>
                                {{orderInfo.SerialId}}
-                           </span>
-                       </form-item>
-                   </i-col>
-                   <i-col span="12">
-                       <form-item label="项目号">
-                           <span>
-                               {{orderInfo.ProjectNo}}
-                           </span>
-                       </form-item>
-                   </i-col>
-                   <i-col span="12">
-                       <form-item label="版本">
-                           <span>
-                               {{orderInfo.Version}}
-                           </span>
-                       </form-item>
-                   </i-col>
-                   <i-col span="12">
-                       <form-item label="数量">
-                           <span>
-                               {{orderInfo.Number}}
-                           </span>
-                       </form-item>
-                   </i-col>
-                   <i-col span="12">
-                       <form-item label="友华交期">
-                           <span>
-                               {{orderInfo.YouhuaDate}}
                            </span>
                        </form-item>
                    </i-col>
@@ -452,6 +424,10 @@
                 let _self = this;
                 return {
                     Columns: [
+                        {
+                            title: '项目编号',
+                            key: 'ProjectSerialId'
+                        },
                         {
                             title: '材料名称',
                             key: 'Material'
