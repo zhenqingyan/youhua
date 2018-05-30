@@ -1,0 +1,57 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewBag.Title - 我的 ASP.NET 应用程序</title>
+    <link rel="stylesheet" href="~/Content/iview/dist/styles/iview.css" />
+    @RenderSection("styles", required: false)
+    <style>
+
+        html, body {
+            height:100%;
+        }
+        .layout {
+            border: 1px solid #d7dde4;
+            background: #f5f7f9;
+            position: relative;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .layout-logo {
+            width: 100px;
+            height: 30px;
+            background: #5b6270;
+            border-radius: 3px;
+            float: left;
+            position: relative;
+            top: 15px;
+            left: 20px;
+        }
+
+
+
+        .You-Footer-Content {
+            text-align:center;
+        }
+        .You-Button-Hover:hover::after {
+            content:'点击登出';
+        }
+    </style>
+</head>
+<body>
+    <div class="layout" id="app">
+        @RenderBody()
+    </div>
+    @RenderSection("templates",required:false)
+    <script src="~/Scripts/jquery-1.10.2.min.js"></script>
+    <script src="~/Content/vue/dist/vue.min.js"></script>
+    <script src="~/Content/iview/dist/iview.min.js"></script>
+    <script src="~/Content/axios/dist/axios.min.js"></script>
+    <script src="~/Content/echarts/dist/echarts.min.js"></script>
+    <script src="~/Content/echarts/dist/extension/dataTool.min.js"></script>
+    @RenderSection("scripts", required: false)
+</body>
+</html>

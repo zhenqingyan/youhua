@@ -1,0 +1,23 @@
+﻿<div>
+    <i-table v-bind:columns="Columns" v-bind:data="data"></i-table>
+    <Modal title="收货" v-model="receiveModel.isShow">
+        <i-Form ref="formItem" v-bind:model="receiveModel.data" v-bind:label-width="100">
+            <Form-Item label="收货数量" prop="ReceiveNumber">
+                <Input-Number v-model="receiveModel.data.ReceiveNumber" style="{width:'200px'}"></Input-Number>
+            </Form-Item>
+        </i-Form>
+        <div slot="footer">
+            <i-Button type="primary" v-bind:loading="receiveModel.loading" @click="receiveProduct(receiveModel.data.RowGuid)">收货</i-Button>
+        </div>
+    </Modal>
+    <Modal title="检验" v-model="auditModel.isShow">
+        <i-Form ref="formItem" v-bind:model="auditModel.data" v-bind:label-width="100">
+            <Form-Item label="检验成功数量" prop="AuditNumber">
+                <Input-Number v-model="auditModel.data.AuditNumber" style="{width:'200px'}"></Input-Number>
+            </Form-Item>
+        </i-Form>
+        <div slot="footer">
+            <i-Button type="primary" v-bind:loading="auditModel.loading" @click="auditProduct(auditModel.data.RowGuid)">检验</i-Button>
+        </div>
+    </Modal>
+</div>

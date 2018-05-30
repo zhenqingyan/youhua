@@ -1,0 +1,32 @@
+﻿<Layout>
+    <i-Header>
+        @Html.Action("MenuInfo", "Menu")
+    </i-Header>
+    <Layout style="{padding: '0 24px 24px'}">
+        <i-Content v-bind:style="{padding: '24px', minHeight: '100vh', background: '#fff'}">
+            <h1>
+               无权限访问
+            </h1>
+        </i-Content>
+        <i-Footer>
+            <div class="You-Footer-Content">
+                版权所有
+            </div>
+        </i-Footer>
+    </Layout>
+</Layout>
+@section scripts{
+    <script>
+        $(function () {
+            let vue = new Vue({
+                el: '#app',
+                methods: {
+                    loginOut: function () {
+
+                    }
+                }
+            });
+        })
+    </script>
+
+}

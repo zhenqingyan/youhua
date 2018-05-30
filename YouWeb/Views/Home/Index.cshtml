@@ -1,0 +1,509 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+
+@section styles{
+
+    <style scoped>
+        .You-Card {
+            margin-bottom: 20px;
+        }
+
+        .demo-upload-list {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            text-align: center;
+            line-height: 60px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            overflow: hidden;
+            background: #fff;
+            position: relative;
+            box-shadow: 0 1px 1px rgba(0,0,0,.2);
+            margin-right: 4px;
+        }
+
+            .demo-upload-list img {
+                width: 100%;
+                height: 100%;
+            }
+
+        .demo-upload-list-cover {
+            display: none;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,.6);
+        }
+
+        .demo-upload-list:hover .demo-upload-list-cover {
+            display: block;
+        }
+
+        .demo-upload-list-cover i {
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            margin: 0 2px;
+        }
+    </style>
+}
+<Layout>
+    <i-Header>
+       @Html.Action("MenuInfo", "Menu")
+    </i-Header>
+    <Layout style="{padding: '0 24px 24px'}">
+        <Breadcrumb style="{margin: '24px 0'}">
+            <Breadcrumb-Item>仓库管理</Breadcrumb-Item>
+            <Breadcrumb-Item>收货记录</Breadcrumb-Item>
+        </Breadcrumb>
+        <i-Content v-bind:style="{padding: '24px', minHeight: '100vh', background: '#fff'}">
+            <Card>
+                <Row>
+                    <i-col span="6">
+                        <i-Button type="info" @@click="showModal">添加收货单</i-Button>
+                    </i-col>
+                    <i-col span="6">
+                        <i-Button @@click="query">刷新</i-Button>
+                    </i-col>
+                </Row>
+            </Card>
+            <br />
+            <Card>
+                <i-table v-bind:columns="Columns" v-bind:data="Data" v-bind:loading="loadSearch">
+
+                </i-table>
+                <div style="margin: 10px;overflow: hidden">
+                    <div style="float: right;">
+                        <Page v-bind:total="count" show-total show-elevator v-bind:current="formSearch.from" v-bind:page-size="formSearch.size" @@on-change="changePage"></Page>
+                    </div>
+                </div>
+            </Card>
+            <Modal v-model="insertModal"
+                   title="添加收货单"
+                   loading="loading"
+                   width="900">
+                <i-Form ref="formItem" model="formItem" label-width="100" rules="ruleValidate">
+                    <Form-Item label="收货编号" prop="ReceiptNumber">
+                        <Input-Number v-model="formItem.ReceiptNumber" style="{width:'200px'}"></Input-Number>
+                    </Form-Item>
+                    <Form-Item label="收货单货" prop="ReceiptCompany">
+                        <i-Input v-model="formItem.ReceiptCompany" placeholder="请输入收货单位"></i-Input>
+                    </Form-Item>
+                    <Form-Item label="送货人" prop="DeliveryMan">
+                        <i-Input v-model="formItem.DeliveryMan" placeholder="请输入送货人"></i-Input>
+                    </Form-Item>
+                    <Form-Item label="收货人" prop="ReceiptMan">
+                        <i-Input v-model="formItem.ReceiptMan" placeholder="请输入收货人"></i-Input>
+                    </Form-Item>
+                    <Form-Item label="收货日期" prop="DelieryTime">
+                        <Date-Picker v-model="formItem.DelieryTime" type="date" placeholder="选择日期" style="width: 200px"></Date-Picker>
+                    </Form-Item>
+                    <Row>
+                        <i-col span="24" v-for="(item, index) in formItem.items">
+                            <Card v-if="item.status" class="You-Card">
+                                <Row>
+                                    <i-Col span="12">
+                                        <Form-Item key="index"
+                                                   label="材料"
+                                                   prop="'items.' + index + '.Material'"
+                                                   rules="{ required: true, message: '请输入材料名称', trigger: 'blur' }">
+                                            <i-Input v-model="item.Material" placeholder="请输入收货人"></i-Input>
+                                        </Form-Item>
+                                    </i-Col>
+                                    <i-Col span="12">
+                                        <Form-Item key="index"
+                                                   label="名称及规格"
+                                                   prop="'items.' + index + '.NameAndType'"
+                                                   rules="{ required: true, message: '请输入名称及规格', trigger: 'blur' }">
+                                            <i-Input v-model="item.NameAndType" placeholder="请输入收货人"></i-Input>
+                                        </Form-Item>
+                                    </i-Col>
+                                    <i-Col span="12">
+                                        <Form-Item key="index"
+                                                   label="数量"
+                                                   prop="'items.' + index + '.Number'">
+                                            <Input-Number v-model="item.Number"></Input-Number>
+                                        </Form-Item>
+                                    </i-Col>
+                                    <i-Col span="12">
+                                        <Form-Item key="index"
+                                                   label="单重"
+                                                   prop="'items.' + index + '.Weight'"
+                                                   rules="{ required: true, message: '请输入单重', trigger: 'blur' }">
+                                            <i-Input v-model="item.Weight" placeholder="请输入单重"></i-Input>
+                                        </Form-Item>
+                                    </i-Col>
+                                    <i-Col span="12">
+                                        <Form-Item key="index"
+                                                   label="总重"
+                                                   prop="'items.' + index + '.TotalWeight'"
+                                                   rules="{ required: true, message: '请输入总重', trigger: 'blur' }">
+                                            <i-Input v-model="item.TotalWeight" placeholder="请输入总重"></i-Input>
+                                        </Form-Item>
+                                    </i-Col>
+                                    <i-Col span="12">
+                                        <Form-Item key="index"
+                                                   label="炉号"
+                                                   prop="'items.' + index + '.FurnaceNumber'"
+                                                   rules="{ required: true, message: '请输入炉号', trigger: 'blur' }">
+                                            <i-Input v-model="item.FurnaceNumber" placeholder="请输入炉号"></i-Input>
+                                        </Form-Item>
+                                    </i-Col>
+                                    <i-Col span="12">
+                                        <Form-Item key="index"
+                                                   label="备注">
+                                            <i-Input v-model="item.Remark" placeholder="请输入备注"></i-Input>
+                                        </Form-Item>
+                                    </i-Col>
+                                    <i-Col span="10" offset="2">
+                                        <i-Button type="ghost" @@click="handleRemove(index)">删除</i-Button>
+                                    </i-Col>
+                                </Row>
+                            </Card>
+                        </i-col>
+                        <i-Col span="24">
+                            <i-Button type="dashed" long @@click="handleAdd" icon="plus-round">添加材料</i-Button>
+                        </i-Col>
+                    </Row>
+
+                    <Form-Item label="上传图片" prop="FileGuid">
+                        <div class="demo-upload-list" v-for="item in uploadList">
+                            <div v-if="item.status === 'finished'">
+                                <img src="item.url">
+                                <div class="demo-upload-list-cover">
+                                    <Icon type="ios-eye-outline" @@click.native="handleView(item.name)"></Icon>
+                                    <Icon type="ios-trash-outline" @@click.native="handleUploadRemove(item)"></Icon>
+                                </div>
+                            </div>
+                            <div v-else>
+                                <i-Progress v-if="item.showProgress" percent="item.percentage" hide-info></i-Progress>
+                            </div>
+                        </div>
+                        <Upload ref="upload"
+                                v-bind:show-upload-list="false"
+                                v-bind:on-success="handleSuccess"
+                                v-bind:default-file-list="defaultList"
+                                v-bind:format="['jpg']"
+                                v-bind:max-size="2048"
+                                v-bind:on-format-error="handleFormatError"
+                                v-bind:on-exceeded-size="handleMaxSize"
+                                v-bind:before-upload="handleBeforeUpload"
+                                multiple
+                                type="drag"
+                                action="UpLoadPic"
+                                style="display: inline-block;width:58px;">
+                            <div style="width: 58px;height:58px;line-height: 58px;">
+                                <Icon type="camera" size="20"></Icon>
+                            </div>
+                        </Upload>
+                        <i-Input v-bind:style="{display:'none'}" v-model="formItem.FileGuid"></i-Input>
+                    </Form-Item>
+                </i-Form>
+                <div slot="footer">
+                    <i-Button type="primary" v-bind:loading="loading" @@click="asyncOK">录入收货单</i-Button>
+                    <i-Button @@click="cancel">取消</i-Button>
+                </div>
+            </Modal>
+            <Modal title="收货凭证" v-model="visible">
+                <img v-bind:src="'GetPic?fileName=' + imgName" v-if="visible" style="width: 100%">
+                <div slot="footer">
+                </div>
+            </Modal>
+        </i-Content>
+        <i-Footer>
+            <div class="You-Footer-Content">
+                版权所有
+            </div>
+        </i-Footer>
+    </Layout>
+</Layout>
+
+@section scripts{
+    <script>
+        Vue.component('row-component', {
+            template: `<div>
+                        <Row class="expand-row">
+                             <i-col span="24">
+                                <i-table v-bind:columns="row.expandColumn" v-bind:data="row.expandRow"></i-table>
+                             </i-col>
+                        </Row>
+                </div>`,
+            props: ['row'],
+            methods: {
+
+            }
+        });
+        $(function () {
+
+            let defaultData = {
+                formSearch: {
+                    from: 1,
+                    size: 10
+                },
+                formItem: {
+                    ReceiptNumber: 0,
+                    ReceiptCompany: '',
+                    DeliveryMan: '',
+                    ReceiptMan: '',
+                    DelieryTime: '2018-01-06',
+                    FileGuid: '',
+                    items: []
+                },
+                ItemInfo: {
+                    Material: '',
+                    NameAndType: '',
+                    Number: 1,
+                    Weight: '',
+                    TotalWeight: '',
+                    FurnaceNumber: '',
+                    Remark: ''
+                }
+            }
+
+            var app = new Vue({
+                el: '#app',
+                data: function () {
+                    let _self = this;
+                    return {
+                        formItem: $.extend(true, {}, defaultData.formItem),
+                        formSearch: $.extend(true, {}, defaultData.formSearch),
+                        itemRuleValidate: {
+                            Material: [{ required: true, message: '请输入材料名称', trigger: 'blur' }],
+                            NameAndType: [{ required: true, message: '请输入名称及规格', trigger: 'blur' }],
+                            Number: [{ required: true, message: '请输入数量', trigger: 'blur' }],
+                            Weight: [{ required: true, message: '请输入单重', trigger: 'blur' }],
+                            TotalWeight: [{ required: true, message: '请输入总重', trigger: 'blur' }],
+                            FurnaceNumber: [{ required: true, message: '请输入炉号', trigger: 'blur' }],
+                        },
+                        ruleValidate: {
+                            ReceiptCompany: [
+                                { required: true, message: '请输入收货单位', trigger: 'blur' }
+                            ],
+                            DeliveryMan: [
+                                { required: true, message: '请输入送货人', trigger: 'blur' }
+                            ],
+                            ReceiptMan: [
+                                { required: true, message: '请输入收货人', trigger: 'blur' }
+                            ],
+                            DelieryTime: [
+                                { required: true, type: 'date', message: '请选择日期', trigger: 'change' }
+                            ],
+                            FileGuid: [
+                                { required: true, message: '请传收货图片', trigger: 'blur' }
+                            ],
+                        },
+                        Columns: [
+                            {
+                                type: 'expand',
+                                width: 50,
+                                render: (h, params) => {
+                                    return h('row-component', {
+                                        props: {
+                                            row: {
+                                                expandRow: params.row.Items,
+                                                expandColumn: [
+                                                    {
+                                                        title: '材料名称',
+                                                        key: 'Material'
+                                                    },
+                                                    {
+                                                        title: '名称及规格',
+                                                        key: 'NameAndType'
+                                                    },
+                                                    {
+                                                        title: '数量',
+                                                        key: 'Number'
+
+                                                    },
+                                                    {
+                                                        title: '单重',
+                                                        key: 'Weight'
+                                                    },
+                                                    {
+                                                        title: '总重',
+                                                        key: 'TotalWeight'
+                                                    },
+                                                    {
+                                                        title: '炉号',
+                                                        key: 'FurnaceNumber'
+                                                    },
+                                                    {
+                                                        title: '备注',
+                                                        key: 'Remark'
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    });
+                                }
+                            },
+                            {
+                                title: '收货编号',
+                                key: 'ReceiptNumber'
+                            },
+                            {
+                                title: '收货单位',
+                                key: 'ReceiptCompany'
+                            },
+                            {
+                                title: '送货人',
+                                key: 'DeliveryMan'
+                            },
+                            {
+                                title: '收货人',
+                                key: 'ReceiptMan'
+                            },
+                            {
+                                title: '收货时间',
+                                key: 'DelieryTime'
+                            },
+                            {
+                                title: '创建时间',
+                                key: 'CreateTime'
+                            },
+                            {
+                                title: '收货收据',
+                                key: 'FileGuid',
+                                render: (h, params) => {
+                                    return h('Button', {
+                                        props: {
+                                            type: 'primary',
+                                            icon: 'image'
+                                        },
+                                        on: {
+                                            click: () => {
+                                                _self.handleView(params.row.FileGuid);
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        ],
+                        Data: [
+                        ],
+                        count: 0,
+                        loadSearch: false,
+                        insertModal: false,
+                        loading: true,
+                        index: 0,
+                        defaultList: [
+                        ],
+                        imgName: '',
+                        visible: false,
+                        uploadList: []
+                    }
+                },
+                methods: {
+                    loginOut: function () {
+                        let _self = this;
+                        alert(1);
+                        axios.post('Insert', _self.formItem).then(function (response) {
+                            alert(response);
+
+                        }).catch(function (error) {
+                            console.log(error);
+                        });
+                    },
+                    showModal: function () {
+                        let _self = this;
+                        _self.formItem = $.extend(true, {}, defaultData.formItem);
+                        this.$refs.upload.fileList.splice(0, 1);
+                        _self.$refs['formItem'].resetFields();
+                        _self.insertModal = true;
+                        _self.loading = false;
+                    },
+                    cancel: function () {
+                        this.insertModal = false;
+                    },
+                    asyncOK: function () {
+                        let _self = this;
+                        _self.$refs['formItem'].validate((valid) => {
+                            if (valid) {
+                                _self.$Message.success('Success!');
+                                _self.loading = true;
+                                axios.post('Insert', _self.formItem).then(function (response) {
+                                    _self.insertModal = false;
+                                }).catch(function (error) {
+                                    console.log(error);
+                                });
+                            } else {
+                                _self.$Message.error('Fail!');
+                            }
+                        });
+                    },
+                    handleAdd: function () {
+                        let _self = this;
+                        _self.index++;
+                        _self.formItem.items.push($.extend(true, {}, defaultData.ItemInfo, { status: 1, index: _self.index }));
+                    },
+                    handleRemove(index) {
+                        let _self = this;
+                        _self.formItem.items[index].status = 0;
+                    },
+                    handleView(name) {
+                        this.imgName = name;
+                        this.visible = true;
+                    },
+                    handleUploadRemove(file) {
+                        const fileList = this.$refs.upload.fileList;
+                        this.$refs.upload.fileList.splice(fileList.indexOf(file), 1);
+                        this.formItem.FileGuid = '';
+                    },
+                    handleSuccess(res, file) {
+                        file.url = 'GetPic?fileName=' + res.FileName;
+                        this.formItem.FileGuid = res.FileName;
+                        file.name = res.FileName;
+                    },
+                    handleFormatError(file) {
+                        this.$Notice.warning({
+                            title: '文件格式不匹配',
+                            desc: '文件：' + file.name + '不正确, 请选择jpg or png.'
+                        });
+                    },
+                    handleMaxSize(file) {
+                        this.$Notice.warning({
+                            title: '文件大小超限',
+                            desc: '文件：' + file.name + ' 太大,不能超过2M.'
+                        });
+                    },
+                    handleBeforeUpload() {
+                        const check = this.uploadList.length < 2;
+                        if (!check) {
+                            this.$Notice.warning({
+                                title: '只能上传一个图片.'
+                            });
+                        }
+                        return check;
+                    },
+                    query: function () {
+                        let _self = this;
+                        _self.loadSearch = true;
+                        axios.post('GetData', _self.formSearch).then(function (response) {
+                            _self.Data = response.data.data
+                            _self.count = response.data.count
+                            _self.loadSearch = false;
+                        }).catch(function (error) {
+                            console.log(error);
+                            _self.loadSearch = false;
+                        });
+
+                    },
+                    changePage: function (currentPage) {
+                        let _self = this;
+                        _self.formSearch.from = currentPage;
+                        this.query();
+                    },
+                },
+                mounted() {
+                    this.uploadList = this.$refs.upload.fileList;
+                }
+            });
+        })
+    </script>
+
+
+}

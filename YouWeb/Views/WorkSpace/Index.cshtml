@@ -1,0 +1,624 @@
+﻿@{
+    ViewBag.Title = "工作区";
+}
+
+@section styles{
+    <style scoped>
+        .You-Card {
+            margin-bottom: 20px;
+        }
+    </style>
+}
+<Layout>
+    <i-Header>
+        @Html.Action("MenuInfo", "Menu")
+    </i-Header>
+    <Layout style="{padding: '0 24px 24px'}">
+        <Breadcrumb>
+            <Breadcrumb-Item>订单</Breadcrumb-Item>
+            <Breadcrumb-Item>订单信息</Breadcrumb-Item>
+        </Breadcrumb>
+        <i-Content v-bind:style="{padding: '24px', minHeight: '100vh', background: '#fff'}">
+            <Row>
+                <i-col span="8">
+                    <Card>
+                        <i-Button @@click="orderInfoQuery">刷新</i-Button>
+                        <i-table v-bind:columns="orderTable.Columns" v-bind:data="orderTable.Data" v-bind:loading="orderTable.loadSearch">
+                        </i-table>
+                        <div style="padding: 10px;overflow: hidden">
+                            <div style="float: right;">
+                                <Page v-bind:total="orderTable.count" show-total show-elevator v-bind:current="orderTable.search.from" v-bind:page-size="orderTable.search.size" @@on-change="orderInfoChangePage"></Page>
+                            </div>
+                        </div>
+                    </Card>
+                </i-col>
+                <i-col span="16">
+                    <div v-if="true">
+                        <Card>
+                            <span>订单号：{{currentSerialId}}</span>
+                            <my-component v-bind:components="coms" v-bind:serialId="currentSerialId"></my-component>
+                        </Card>
+                    </div>
+                    <div v-else>
+                        <span>
+                            请选择一个订单
+                        </span>
+                    </div>
+                </i-col>
+            </Row>
+        </i-Content>
+        <i-Footer>
+            <div class="You-Footer-Content">
+                版权所有
+            </div>
+        </i-Footer>
+    </Layout>
+</Layout>
+
+@section templates{
+    <!--采购单信息-->
+<script type="text/x-template" id="processsheetTmp">
+    <div>
+        <i-button @@click="addNew">新建工艺流转单</i-button>
+        <i-button @@click="searchInfo">刷新</i-button>
+        <i-table v-bind:columns="sheetTableInfo.Columns" v-bind:data="sheetTableInfo.Data" v-bind:loading="sheetTableInfo.loading"></i-table>
+        <Modal title="新增流转单"
+               v-model="insertModal.isShow"
+               v-bind:width="900">
+            <i-Form ref="formItem" v-bind:model="insertModal.data" v-bind:label-width="100">
+                <Form-Item label="工艺流转单号" prop="SheetNo">
+                    <i-Input v-model="insertModal.data.SheetNo" placeholder="请输入单号"></i-Input>
+                </Form-Item>
+            </i-Form>
+            <div slot="footer">
+                <i-Button type="primary" v-bind:loading="insertModal.loading" @@click="insertPurchase">录入</i-Button>
+            </div>
+        </Modal>
+        <Modal title="添加材料"
+               v-model="insertProductModal.isShow"
+               v-bind:width="900">
+            <i-Form ref="formItem" v-bind:model="insertProductModal.data" v-bind:label-width="100">
+                <Form-Item label="材料信息" prop="Number">
+                    <div v-if="JSON.stringify(insertProductModal.productInfo)  != '{}'">
+                        <span>{{insertProductModal.productInfo.Material}}</span>
+                    </div>
+                    <proselector @@callback="selectorCallBack"></proselector>
+                </Form-Item>
+                <Form-Item label="数量" prop="Number">
+                    <Input-Number v-model="insertProductModal.data.Number" :style="{width:'200px'}"></Input-Number>
+                </Form-Item>
+            </i-Form>
+            <div slot="footer">
+                <i-Button type="primary" v-bind:loading="insertProductModal.loading" @@click="insertPurchaseProduct">添加</i-Button>
+            </div>
+        </Modal>
+    </div>
+</script>
+<script type="text/x-template" id="sheetProInfoTmp">
+    <div>
+        <i-table v-bind:columns="Columns" v-bind:data="data"></i-table>
+        <Modal title="提货" v-model="receiveModel.isShow">
+            <i-Form ref="formItem" v-bind:model="receiveModel.data" v-bind:label-width="100">
+                <Form-Item label="提货数量" prop="GetNumber">
+                    <Input-Number v-model="receiveModel.data.GetNumber" :style="{width:'200px'}"></Input-Number>
+                </Form-Item>
+            </i-Form>
+            <div slot="footer">
+                <i-Button type="primary" v-bind:loading="receiveModel.loading" @@click="receiveProduct(receiveModel.data.RowGuid)">提货</i-Button>
+            </div>
+        </Modal>
+    </div>
+</script>
+    <!--库存信息-->
+    <script type="text/x-template" id="purchaseProInfoTmp">
+        <div>
+            <i-table v-bind:columns="Columns" v-bind:data="data"></i-table>
+            <Modal title="收货" v-model="receiveModel.isShow">
+                <i-Form ref="formItem" v-bind:model="receiveModel.data" v-bind:label-width="100">
+                    <Form-Item label="收货数量" prop="ReceiveNumber">
+                        <Input-Number v-model="receiveModel.data.ReceiveNumber" :style="{width:'200px'}"></Input-Number>
+                    </Form-Item>
+                </i-Form>
+                <div slot="footer">
+                    <i-Button type="primary" v-bind:loading="receiveModel.loading" @@click="receiveProduct(receiveModel.data.RowGuid)">收货</i-Button>
+                </div>
+            </Modal>
+            <Modal title="检验" v-model="auditModel.isShow">
+                <i-Form ref="formItem" v-bind:model="auditModel.data" v-bind:label-width="100">
+                    <Form-Item label="检验成功数量" prop="AuditNumber">
+                        <Input-Number v-model="auditModel.data.AuditNumber" :style="{width:'200px'}"></Input-Number>
+                    </Form-Item>
+                </i-Form>
+                <div slot="footer">
+                    <i-Button type="primary" v-bind:loading="auditModel.loading" @@click="auditProduct(auditModel.data.RowGuid)">检验</i-Button>
+                </div>
+            </Modal>
+        </div>
+    </script>
+    <!--订单信息模板--> 
+   <script type="text/x-template" id="orderInfoTmp">
+       <div>
+           <i-form ref="orderInfo" v-bind:model="orderInfo" v-bind:label-width="80">
+               <Row>
+                   <i-col span="12">
+                       <form-item label="订单号">
+                           <span>
+                               {{orderInfo.SerialId}}
+                           </span>
+                       </form-item>
+                   </i-col>
+                   <i-col span="12">
+                       <form-item label="项目号">
+                           <span>
+                               {{orderInfo.ProjectNo}}
+                           </span>
+                       </form-item>
+                   </i-col>
+                   <i-col span="12">
+                       <form-item label="版本">
+                           <span>
+                               {{orderInfo.Version}}
+                           </span>
+                       </form-item>
+                   </i-col>
+                   <i-col span="12">
+                       <form-item label="数量">
+                           <span>
+                               {{orderInfo.Number}}
+                           </span>
+                       </form-item>
+                   </i-col>
+                   <i-col span="12">
+                       <form-item label="友华交期">
+                           <span>
+                               {{orderInfo.YouhuaDate}}
+                           </span>
+                       </form-item>
+                   </i-col>
+                   <i-col span="12">
+                       <form-item label="状态">
+                           <div v-if="orderInfo.Status==0">
+                               <Tag color="red">未完成</Tag>
+                           </div>
+                           <div v-else>
+                               <Tag color="green">完成</Tag>
+                           </div>
+                       </form-item>
+                   </i-col>
+                   <i-col span="12">
+                       <form-item label="紧急程度">
+                           <div v-if="orderInfo.DeliveryStatus==4">
+                               <Tag color="red">非常紧急</Tag>
+                           </div>
+                           <div v-else-if="orderInfo.DeliveryStatus==3">
+                               <Tag color="yellow">紧急</Tag>
+                           </div>
+                           <div v-else-if="orderInfo.DeliveryStatus==2">
+                               <Tag color="blue">抓紧</Tag>
+                           </div>
+                           <div v-else-if="orderInfo.DeliveryStatus==1">
+                               <Tag color="green">完成</Tag>
+                           </div>
+                           <div v-else>
+                               <Tag color="yellow">未开始</Tag>
+                           </div>
+                       </form-item>
+                   </i-col>
+                   <i-col span="24">
+                       <form-item label="备注">
+                           <span>
+                               {{orderInfo.Remark}}
+                           </span>
+                       </form-item>
+                   </i-col>
+                   <i-col span="12" offset="12">
+                       <form-item>
+                           <i-button @@click=queryOrderInfo>
+                               查看
+                           </i-button>
+                       </form-item>
+                   </i-col>
+               </Row>
+           </i-form>
+       </div>
+    </script>
+}
+
+@section scripts{
+    @{ 
+        int randomId = new Random().Next();
+    }
+    <script src="~/Content/components/orderproplug/orderproplug.js?randId=@randomId"></script>
+    <script src="~/Content/components/proselector/proselector.js?randId=@randomId"></script>
+    <script src="~/Content/components/purchaseplug/purchaseplug.js?randId=@randomId"></script>
+    <script src="~/Content/components/sheetplug/sheetplug.js?randId=@randomId"></script>
+    <script>
+        Vue.component('my-component', {
+            props: ['components','serialid'],
+            data: function () {
+                return {
+                   
+                };
+            },
+            watch:{
+                serialid: function () {
+
+                }
+            },
+            render: function (h) {
+                let _self = this;
+                let coms = [];
+                for (let i = 0; i < _self.components.length; i++) {
+                    coms.push(h(_self.components[i], {
+                        props: {
+                            serialid: _self.serialid
+                        }
+                    }));
+                }
+                return h('div', {}, coms);
+            }
+        });
+        Vue.component('sheetinfo', {
+            template: '#processsheetTmp',
+            props: ['serialid'],
+            data: function () {
+                let _self = this;
+                return {
+                    sheetTableInfo: {
+                        Columns: [
+                            {
+                                type: 'expand',
+                                width: 50,
+                                render: (h, params) => {
+                                    return h('sheetproinfo', {
+                                        props: {
+                                            data: params.row.Items,
+                                            status: params.row.Status == 1 ? 1 : 0
+                                        }
+                                    });
+                                }
+                            },
+                            {
+                                title: '工艺流转单号',
+                                key: 'SheetNo'
+                            },
+                            {
+                                title: '创建人',
+                                key: 'Creator'
+                            },
+                            {
+                                title: '创建时间',
+                                key: 'CreateTime'
+                            },
+                            {
+                                title: '操作',
+                                render: (h, params) => {
+                                    if (params.row.Status == 0) {
+                                        return h('div', [
+                                            h('Button', {
+                                                props: {
+                                                    type: 'info'
+                                                },
+                                                on: {
+                                                    'click': function () {
+                                                        _self.insertProductModal.productInfo = {};
+                                                        _self.insertProductModal.data = {
+                                                            Number: 0,
+                                                            ProductInfoGuid: '',
+                                                            SheetGuid: params.row.RowGuid
+                                                        };
+                                                        _self.insertProductModal.isShow = true;
+
+                                                    }
+                                                }
+                                            }, '添加材料'),
+                                            h('Button', {
+                                                props: {
+                                                    type: 'info'
+                                                },
+                                                on: {
+                                                    'click': function () {
+                                                        axios.post('AuditSheet', params.row).then(function (response) {
+                                                            _self.searchInfo();
+                                                            _self.$Message.success(response.data);
+                                                        }).catch(function (error) {
+                                                            _self.$Message.error(error);
+                                                        })
+                                                    }
+                                                }
+                                            }, '审核')
+                                        ]);
+                                    } else {
+                                        return h('span', {}, '已审核');
+                                    }
+                                }
+                            }
+                        ],
+                        Data: [
+                            {
+                                SheetNo: '123',
+                                Creator: '123',
+                                CreateTime: '123',
+                                Items: [
+                                    {
+                                        NameAndType: '123',
+                                        Material: '13',
+                                        Number: 1,
+                                        Weight: 1,
+                                        TotalWeight: 1,
+                                        FurnaceNumber: 1,
+                                        Remark: 1
+                                    }]
+                            }
+                        ],
+                        loading: false
+                    },
+                    insertModal: {
+                        isShow: false,
+                        data: {
+                            SheetNo: '',
+                            SerialNo: _self.serialid
+                        },
+                        loading: false
+                    },
+                    insertProductModal: {
+                        isShow: false,
+                        data: {
+                            Number: 0,
+                            ProductInfoGuid: '',
+                            SheetGuid: ''
+                        },
+                        productInfo: {
+                        },
+                        loading: false
+                    }
+
+                };
+            },
+            watch: {
+                serialid: function () {
+                    let _self = this;
+                    _self.searchInfo();
+                }
+            },
+            mounted() {
+                let _self = this;
+                _self.searchInfo();
+            },
+            methods: {
+                addNew: function () {
+                    let _self = this;
+                    _self.insertModal.data = {
+                        PurchaseNo: '',
+                        SerialNo: _self.serialid,
+                        items: []
+                    }
+                    _self.insertModal.isShow = true;
+                    _self.insertModal.loading = false;
+                },
+                insertPurchase: function () {
+                    let _self = this;
+                    _self.$refs['formItem'].validate((valid) => {
+                        if (valid) {
+                            _self.insertModal.loading = true;
+                            axios.post('InsertSheet', _self.insertModal.data).then(function (response) {
+                                _self.insertModal.isShow = false;
+                                _self.$Message.success('Success!');
+                                _self.searchInfo();
+                            }).catch(function (error) {
+                                _self.$Message.error(error);
+                            });
+                        } else {
+                            _self.$Message.error('Fail!');
+                        }
+                    });
+                },
+                searchInfo: function () {
+                    let _self = this;
+                    _self.sheetTableInfo.loading = true;
+                    axios.get('QuerySheet?serialNo=' + _self.serialid).then(function (response) {
+                        _self.sheetTableInfo.Data = response.data;
+                        _self.sheetTableInfo.loading = false;
+                    }).catch(function (error) {
+                        _self.$Message.error(error);
+                        _self.sheetTableInfo.loading = false;
+                    });
+                },
+                insertPurchaseProduct: function () {
+                    let _self = this;
+                    _self.insertProductModal.loading = true;
+                    axios.post('InsertSheetProduct', _self.insertProductModal.data).then(function (response) {
+                        _self.insertProductModal.isShow = false;
+                        _self.$Message.success('Success!');
+                        _self.searchInfo();
+                    }).catch(function (error) {
+                        _self.$Message.error(error);
+                    })
+                },
+                selectorCallBack: function (productInfo) {
+                    let _self = this;
+                    _self.insertProductModal.productInfo = productInfo;
+                    if (JSON.stringify(productInfo) != '{}') {
+                        _self.insertProductModal.data.ProductInfoGuid = productInfo.RowGuid;
+                    }
+                }
+            }
+
+        });
+        Vue.component('sheetproinfo', {
+            template: '#sheetProInfoTmp',
+            props: ['data', 'status'],
+            data: function () {
+                let _self = this;
+                return {
+                    Columns: [
+                        {
+                            title: '材料名称',
+                            key: 'Material'
+                        },
+                        {
+                            title: '数量',
+                            key: 'Number'
+                        },
+                        {
+                            title: '提货数量',
+                            key: 'GetNumber'
+                        },
+                        {
+                            title: '库存数量',
+                            key: 'StockNumber'
+                        },
+                        {
+                            title: '单重',
+                            key: 'Weight'
+                        },
+                        {
+                            title: '总重',
+                            key: 'TotalWeight'
+                        },
+                        {
+                            title: '操作',
+                            render: (h, params) => {
+                                if (_self.status == 1 && params.row.GetNumber < params.row.Number) {
+                                    return h('Button', {
+                                        on: {
+                                            'click': function () {
+                                                _self.receiveModel.data = $.extend(true, {}, params.row);
+                                                _self.receiveModel.isShow = true;
+                                            }
+                                        }
+                                    }, '提货')
+                                }
+                                else {
+                                    return h('span', {}, '无')
+                                }
+                            }
+                        }
+                    ],
+                    receiveModel: {
+                        isShow: false,
+                        loading: false,
+                        data: {}
+                    },
+                };
+            },
+            methods: {
+                receiveProduct: function (rowGuid) {
+                    let _self = this;
+                    _self.receiveModel.loading = true;
+                    axios.post('GetProduct', _self.receiveModel.data).then(function (response) {
+                        _self.$Message.success(response.data);
+                        if (response.data.indexOf('成功') != -1) {
+                            var item = _self.data.find(function (item) {
+                                return item.RowGuid == rowGuid;
+                            });
+                            item.GetNumber = item.GetNumber+_self.receiveModel.data.GetNumber;
+                            item.StockNumber = item.StockNumber- _self.receiveModel.data.GetNumber;
+                            if (item.GetNumber == item.Number) {
+                                item.Status = 1;
+                            }
+                        }
+                        _self.receiveModel.loading = false;
+                        _self.receiveModel.isShow = false;
+                    }).catch(function (error) {
+                        _self.$Message.error(error);
+                        _self.receiveModel.loading = false;
+                    })
+                },
+            }
+        });
+        Vue.component('orderinfo-tmp', {
+            template: '#orderInfoTmp',
+            props: {
+                orderInfo: {}
+            },
+            methods: {
+                queryOrderInfo: function (data) {
+                    let _self = this;
+                    _self.$emit('selectCallBack', _self.orderInfo.SerialId);
+                }
+            }
+        });
+        $(function () {
+            let defaultData = {
+                orderTableSearch: {
+                    from: 1,
+                    size: 10
+                },
+                formItem: {
+
+                }
+            }
+
+            var app = new Vue({
+                el: '#app',
+                data: function () {
+                    let _self = this;
+                    return {
+                        formItem: $.extend(true, {}, defaultData.formItem),
+                        orderTable: {
+                            Columns: [
+                                {
+                                    title: '订单信息',
+                                    render: (h, params) => {
+                                        return h('orderinfo-tmp', {
+                                            props: {
+                                                orderInfo: params.row
+                                            },
+                                            on: {
+                                                'selectCallBack': function (value) {
+                                                    console.log('currentSerial:'+value)
+                                                    _self.currentSerialId = value;
+                                                }
+                                            }
+                                        })
+                                    }
+                                }],
+                            Data: [],
+                            loadSearch: false,
+                            count: 0,
+                            search: $.extend(true, {}, defaultData.orderTableSearch)
+                        },
+                        coms: ['orderproplug'],
+                        currentSerialId:''
+                    }
+                },
+
+                methods: {
+                    loginOut: function () { //Layout需要用的方法
+                        let _self = this;
+                        alert(1);
+                    },
+                    orderInfoQuery: function () {
+                        let _self = this;
+                        _self.orderTable.loadSearch = true;
+                        axios.post('/OrderInfo/GetData', _self.orderTable.search).then(function (response) {
+                            _self.orderTable.Data = response.data.data
+                            _self.orderTable.count = response.data.count
+                            _self.orderTable.loadSearch = false;
+                        }).catch(function (error) {
+                            console.log(error);
+                            _self.orderTable.loadSearch = false;
+                        });
+
+                    },
+                    orderInfoChangePage: function (currentPage) {
+                        let _self = this;
+                        _self.orderTable.search.from = currentPage;
+                        _self.orderInfoQuery();
+                    },
+                    selectorCallBack: function (e)
+                    {
+                        debugger
+                    }
+                },
+                mounted() {
+                    let _self = this;
+                    //_self.orderInfoQuery();
+                }
+            });
+        })
+    </script>
+
+
+}

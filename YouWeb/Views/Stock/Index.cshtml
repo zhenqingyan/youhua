@@ -1,0 +1,145 @@
+﻿
+@{
+    ViewBag.Title = "库存信息";
+}
+
+@section styles{
+
+    <style scoped>
+        .You-Card {
+            margin-bottom: 20px;
+        }
+    </style>
+
+}
+<Layout>
+    <i-Header>
+        @Html.Action("MenuInfo", "Menu")
+    </i-Header>
+    <Layout style="{padding: '0 24px 24px'}">
+        <Breadcrumb v-bind:style="{margin: '24px 0'}">
+            <Breadcrumb-Item>仓库</Breadcrumb-Item>
+            <Breadcrumb-Item>库存信息</Breadcrumb-Item>
+        </Breadcrumb>
+        <i-Content v-bind:style="{padding: '24px', minHeight: '100vh', background: '#fff'}">
+            <Card>
+                <Row>
+                    <i-col span="6">
+                        <i-Button @@click="Query">刷新</i-Button>
+                    </i-col>
+                </Row>
+            </Card>
+            <Card>
+                <Row>
+                    <i-col span="24">
+                        <i-table v-bind:columns="Table.Columns" v-bind:data="Table.Data" v-bind:loading="Table.loadSearch">
+                        </i-table>
+                        <div style="padding: 10px;overflow: hidden">
+                            <div style="float: right;">
+                                <Page v-bind:total="Table.count" show-total show-elevator v-bind:current="Table.search.from" v-bind:page-size="Table.search.size" @@on-change="ChangePage"></Page>
+                            </div>
+                        </div>
+                    </i-col>
+                </Row>
+            </Card>
+        </i-Content>
+        <i-Footer>
+            <div class="You-Footer-Content">
+                版权所有
+            </div>
+        </i-Footer>
+    </Layout>
+</Layout>
+
+@section scripts{
+    <script>
+        $(function () {
+            let defaultData = {
+                Search: {
+                    from: 1,
+                    size: 10
+                },
+                formItem: {
+                }
+            }
+
+            var app = new Vue({
+                el: '#app',
+                data: function () {
+                    let _self = this;
+                    return {
+                        formItem: $.extend(true, {}, defaultData.formItem),
+                        Table: {
+                            Columns: [
+                                {
+                                    title: '材料名称',
+                                    key: 'Material'
+                                },
+                                {
+                                    title: '名称及规格',
+                                    key: 'NameAndType'
+                                },
+                                {
+                                    title: '单重',
+                                    key: 'Weight'
+                                },
+                                {
+                                    title: '总重',
+                                    key: 'TotalWeight'
+                                },
+                                {
+                                    title: '炉号',
+                                    key: 'FurnaceNumber'
+                                },
+                                {
+                                    title: '备注',
+                                    key: 'Remark'
+                                },
+                                {
+                                    title: '数量',
+                                    key: 'Number'
+                                },
+                                {
+                                    title: '已用数量',
+                                    key: 'UseNumber'
+                                }
+                            ],
+                            Data: [],
+                            loadSearch: false,
+                            count: 0,
+                            search: $.extend(true, {}, defaultData.Search),
+                        },
+                    }
+                },
+
+                methods: {
+                    loginOut: function () { //Layout需要用的方法
+                        let _self = this;
+                        alert(1);
+                    },
+                    Query: function () {
+                        let _self = this;
+                        _self.Table.loadSearch = true;
+                        axios.post('GetData', _self.Table.search).then(function (response) {
+                            _self.Table.Data = response.data.data
+                            _self.Table.count = response.data.count
+                            _self.Table.loadSearch = false;
+                        }).catch(function (error) {
+                            console.log(error);
+                            _self.Table.loadSearch = false;
+                        });
+                    },
+                    ChangePage: function (currentPage) {
+                        let _self = this;
+                        _self.Table.search.from = currentPage;
+                        _self.Query();
+                    },
+                },
+                mounted() {
+                    let _self = this;
+                    //_self.orderInfoQuery();
+                }
+            });
+        })
+    </script>
+}

@@ -1,0 +1,54 @@
+﻿<Row>
+    <i-col span="4">
+        <div class="layout-logo"></div>
+    </i-col>
+    <i-col span="16">
+        <i-Menu mode="horizontal" theme="dark" active-name="1">
+            <Submenu name="1">
+                <template slot="title">
+                    <Icon type="stats-bars"></Icon>
+                    仓库管理
+                </template>
+                <Menu-Item name="1-1">
+                    <a href="/Stock/Index">库存信息</a>
+                </Menu-Item>
+            </Submenu>
+            <Submenu name="2">
+                <template slot="title">
+                    <Icon type="stats-bars"></Icon>
+                    工作区
+                </template>
+                <Menu-Item name="2-1">
+                    <a href="/WorkSpace/Index">我的</a>
+                </Menu-Item>
+            </Submenu>
+            <Submenu name="3">
+                <template slot="title">
+                    <Icon type="stats-bars"></Icon>
+                    订单信息
+                </template>
+                <Menu-Item name="3-1">
+                    <a href="/OrderInfo/Index">订单信息</a>
+                </Menu-Item>
+            </Submenu>
+            <Submenu name="4">
+                <template slot="title">
+                    <Icon type="stats-bars"></Icon>
+                    配置信息
+                </template>
+                <Menu-Item name="4-1">
+                    <a href="/Product/Index">材料配置</a>
+                </Menu-Item>
+                <Menu-Item name="4-1">
+                    <a href="/OrderProduct/Index">订单材料配置</a>
+                </Menu-Item>
+            </Submenu>
+        </i-Menu>
+    </i-col>
+    <i-col span="4">
+        <i-Button size="small" @@click="loginOut" class="You-Button-Hover">
+            <Icon type="person"></Icon>
+            测试
+        </i-Button>
+    </i-col>
+</Row>

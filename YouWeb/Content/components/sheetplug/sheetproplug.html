@@ -1,0 +1,13 @@
+﻿<div>
+    <i-table v-bind:columns="Columns" v-bind:data="data"></i-table>
+    <Modal title="提货" v-model="receiveModel.isShow">
+        <i-Form ref="formItem" v-bind:model="receiveModel.data" v-bind:label-width="100">
+            <Form-Item label="提货数量" prop="GetNumber">
+                <Input-Number v-model="receiveModel.data.GetNumber" style="{width:'200px'}"></Input-Number>
+            </Form-Item>
+        </i-Form>
+        <div slot="footer">
+            <i-Button type="primary" v-bind:loading="receiveModel.loading" @click="receiveProduct(receiveModel.data.RowGuid)">提货</i-Button>
+        </div>
+    </Modal>
+</div>

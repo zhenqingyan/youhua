@@ -1,0 +1,194 @@
+﻿
+@{
+    ViewBag.Title = "订单材料配置";
+}
+
+@section styles{
+
+    <style scoped>
+        .You-Card {
+            margin-bottom: 20px;
+        }
+    </style>
+
+}
+<Layout>
+    <i-Header>
+        @Html.Action("MenuInfo", "Menu")
+    </i-Header>
+    <Layout style="{padding: '0 24px 24px'}">
+        <Breadcrumb v-bind:style="{margin: '24px 0'}">
+            <Breadcrumb-Item>配置</Breadcrumb-Item>
+            <Breadcrumb-Item>材料配置</Breadcrumb-Item>
+        </Breadcrumb>
+        <i-Content v-bind:style="{padding: '24px', minHeight: '100vh', background: '#fff'}">
+            <Card>
+                <Row>
+                    <i-col span="6">
+                        <i-Button @@click="Query">刷新</i-Button>
+                    </i-col>
+                    <i-col span="6">
+                        <i-Button @@click="ShowModal">新增</i-Button>
+                    </i-col>
+                </Row>
+            </Card>
+            <Card>
+                <Row>
+                    <i-col span="24">
+                        <i-table v-bind:columns="Table.Columns" v-bind:data="Table.Data" v-bind:loading="Table.loadSearch">
+                        </i-table>
+                        <div style="padding: 10px;overflow: hidden">
+                            <div style="float: right;">
+                                <Page v-bind:total="Table.count" show-total show-elevator v-bind:current="Table.search.from" v-bind:page-size="Table.search.size" @@on-change="ChangePage"></Page>
+                            </div>
+                        </div>
+                    </i-col>
+                </Row>
+            </Card>
+            <Modal v-model="insertModal"
+                   title="添加材料"
+                   v-bind:width="900">
+                <i-Form ref="formItem" v-bind:model="formItem" v-bind:label-width="100">
+                    <Row>
+                        <i-Col span="12">
+                            <Form-Item label="材料编号"
+                                       prop="Material"
+                                       rules="{ required: true, message: '请输入材料名称', trigger: 'blur' }">
+                                <i-Input v-model="formItem.Material" placeholder="请输入材料编号"></i-Input>
+                            </Form-Item>
+                        </i-Col>
+                        <i-Col span="12">
+                            <Form-Item label="数量"
+                                       prop="Number"
+                                       rules="{ required: true, message: '请输入数量', trigger: 'blur' }">
+                                <i-Input v-model="formItem.Number" placeholder="请输入数量"></i-Input>
+                            </Form-Item>
+                        </i-Col>
+                        <i-Col span="12">
+                            <Form-Item label="交货时间"
+                                       prop="DeliveryDate">
+                                <Date-Picker type="date" v-model="formItem.DeliveryDate" placeholder="请选择交货日期" style="width: 200px"></Date-Picker>
+                            </Form-Item>
+                        </i-Col>
+                        <i-Col span="12">
+                            <Form-Item label="备注">
+                                <i-Input v-model="formItem.Remark" placeholder="请输入备注"></i-Input>
+                            </Form-Item>
+                        </i-Col>
+                    </Row>
+                </i-Form>
+                <div slot="footer">
+                    <i-Button type="primary" v-bind:loading="loading" @@click="Insert">添加</i-Button>
+                </div>
+            </Modal>
+        </i-Content>
+        <i-Footer>
+            <div class="You-Footer-Content">
+                版权所有
+            </div>
+        </i-Footer>
+    </Layout>
+</Layout>
+
+
+@section scripts{
+    <script>
+            $(function () {
+                let defaultData = {
+                    Search: {
+                        from: 1,
+                        size: 10
+                    },
+                    formItem: {
+                        Material: '',
+                        Number:'',
+                        Remark: '',
+                        DeliveryDate:''
+                    }
+                }
+
+                var app = new Vue({
+                    el: '#app',
+                    data: function () {
+                        let _self = this;
+                        return {
+                            formItem: $.extend(true, {}, defaultData.formItem),
+                            Table: {
+                                Columns: [
+                                    {
+                                        title: '材料编号',
+                                        key: 'Material'
+                                    },
+                                    {
+                                        title: '数量',
+                                        key: 'Number'
+                                    },
+                                    {
+                                        title: '交货日期',
+                                        key: 'DeliveryDate'
+                                    },
+                                    {
+                                        title: '备注',
+                                        key: 'Remark'
+                                    }
+                                ],
+                                Data: [],
+                                loadSearch: false,
+                                count: 0,
+                                search: $.extend(true, {}, defaultData.Search),
+                            },
+                            insertModal: false,
+                            loading: false
+                        }
+                    },
+
+                    methods: {
+                        loginOut: function () { //Layout需要用的方法
+                            let _self = this;
+                            alert(1);
+                        },
+                        Query: function () {
+                            let _self = this;
+                            _self.Table.loadSearch = true;
+                            axios.post('GetData', _self.Table.search).then(function (response) {
+                                _self.Table.Data = response.data.data
+                                _self.Table.count = response.data.count
+                                _self.Table.loadSearch = false;
+                            }).catch(function (error) {
+                                console.log(error);
+                                _self.Table.loadSearch = false;
+                            });
+                        },
+                        ChangePage: function (currentPage) {
+                            let _self = this;
+                            _self.Table.search.from = currentPage;
+                            _self.Query();
+                        },
+                        Insert: function () {
+                            let _self = this;
+                            _self.loading = true;
+                            axios.post('Insert', _self.formItem).then(function (response) {
+                                _self.$Message.success(response.data);
+                                _self.loading = false;
+                                _self.insertModal = false;
+                                _self.Query();
+                            }).catch(function (error) {
+                                _self.$Message.error(error);
+                                _self.loading = false;
+                            })
+                        },
+                        ShowModal: function () {
+                            let _self = this;
+                            _self.formItem = $.extend(true, {}, defaultData.formItem);
+                            _self.insertModal = true;
+
+                        }
+                    },
+                    mounted() {
+                        let _self = this;
+                        //_self.orderInfoQuery();
+                    }
+                });
+            })
+    </script>
+}

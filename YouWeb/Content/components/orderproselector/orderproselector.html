@@ -1,0 +1,21 @@
+﻿<div>
+    <i-button @click="showModal" v-bind:loading="showLoading">
+        选择
+    </i-button>
+    <Modal v-model="isShow">
+        <i-table ref="mytable"
+                 v-bind:columns="Table.Columns"
+                 v-bind:data="Table.Data"
+                 v-bind:loading="Table.loading"
+                 highlight-row
+                 @on-current-change="selectRow"></i-table>
+        <div style="padding: 10px;overflow: hidden">
+            <div style="float: right;">
+                <Page v-bind:total="Table.count" show-total show-elevator v-bind:current="Table.search.from" v-bind:page-size="Table.search.size" @@on-change="ChangePage"></Page>
+            </div>
+        </div>
+        <div slot="footer">
+            <i-button @click="selectorCallBack">确认</i-button>
+        </div>
+    </Modal>
+</div>

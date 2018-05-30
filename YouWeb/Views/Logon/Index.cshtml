@@ -1,0 +1,102 @@
+﻿@section styles{
+<style>
+    html, body {
+        height: 100%;
+    }
+
+    #app {
+        height: 100%;
+    }
+
+    .logon-container {
+        height: 200px;
+        width: 400px;
+        position: absolute;
+        top: 50%;
+        margin-top: -100px;
+        left: 0;
+        right: 0;
+        margin-left: auto;
+        margin-right: auto;
+    }
+</style>
+
+}
+<Card class="logon-container">
+    <div slot="title">
+        <h2>友华</h2>
+    </div>
+    <div slot="extra">
+        <i-button type="primary" @@click="logonOn" v-bind:loading="logonLoading">登陆&nbsp;<Icon type="arrow-right-c"></Icon></i-button>
+        
+    </div>
+    <i-form ref="logonForm" v-bind:label-width="80" v-bind:model="logon" v-bind:rules="rules">
+        <form-item label="用户名" prop="name">
+            <i-input v-model="logon.name" placeholder="请输入用户名"></i-input>
+        </form-item>
+        <form-item label="密码" prop="password">
+            <i-input v-model="logon.password" type="password" placeholder="请输入密码" ></i-input>
+        </form-item>
+    </i-form>
+</Card>
+@section scripts{
+    <script>
+        $(function () {
+            var vue = new Vue({
+                el: '#app',
+                data: function () {
+                    let _self = this;
+                    return {
+                        logonLoading: false,
+                        logon:{
+                            name: '',
+                            password: ''
+                        },
+                        rules: {
+                            name: [
+                                { required: true, message: '账户不能为空', trigger: 'blur' }
+                            ],
+                            password: [
+                                { required: true, trigger: 'blur', message: '密码不能为空' },
+                                { max: 8, message: '密码长度不能大于8' }
+                            ]
+                        }
+                    }
+                },
+                methods: {
+                    logonOn: function () {
+
+                        let self = this;
+
+                        self.$refs['logonForm'].validate((valid) => {
+                            if (valid) {
+                                self.logonLoading = true;
+                                axios.post('Logon', self.logon).then(function (resp) {
+                                    console.log(resp)
+                                    if (resp.data) {
+                                        window.location.href = '/Welcome/Index';
+                                        self.$Spin.show()
+                                    } else {
+                                        self.$Message.warning("账户或者密码错误");
+                                    }
+                                }).catch(function (err) {
+                                    console.log(err)
+                                    self.$Message.error("系统异常");
+
+                                }).finally(function () {
+                                    self.logonLoading = false;
+                                })
+                            }
+                        });
+                    }
+
+
+                }
+            });
+
+        })
+</script>
+
+
+    
+}

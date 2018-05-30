@@ -1,0 +1,471 @@
+﻿@{
+    ViewBag.Title = "订单信息";
+}
+@section styles{
+    <style scoped>
+        .You-Card {
+            margin-bottom: 20px;
+        }
+    </style>
+    <script src="~/Content/xlsx/shim.min.js" defer="defer"></script>
+    <script src="~/Content/xlsx/xlsx.full.min.js" defer="defer"></script>
+}
+<Layout>
+    <i-Header>
+        @Html.Action("MenuInfo","Menu")
+    </i-Header>
+    <Layout style="{padding: '0 24px 24px'}">
+        <i-Content v-bind:style="{padding: '24px', minHeight: '100vh', background: '#fff'}">
+            <Breadcrumb>
+                <Breadcrumb-Item>订单</Breadcrumb-Item>
+                <Breadcrumb-Item>订单信息</Breadcrumb-Item>
+            </Breadcrumb>
+            <Card>
+                <Row>
+                    <i-col span="6">
+                        <i-Button @@click="query">刷新</i-Button>
+                    </i-col>
+                    <i-col span="6">
+
+                        <Upload v-bind:before-upload="handleUpload"
+                                action="">
+                            <i-Button type="ghost" icon="ios-cloud-upload-outline">选择一个文件</i-Button>
+                        </Upload>
+                        <div v-if="uploadFile.file !== null">
+                            上传文件: {{ uploadFile.file.name }}
+                            <i-Button type="text" @@click="upload" v-bind:loading="uploadFile.loadingStatus">{{ uploadFile.loadingStatus ? '上传中' : '点击上传' }}</i-Button>
+                        </div>
+                    </i-col>
+                </Row>
+            </Card>
+            <br />
+            <Card>
+                <i-table v-bind:columns="Columns" v-bind:data="Data" v-bind:loading="loadSearch">
+                </i-table>
+                <div style="margin: 10px;overflow: hidden">
+                    <div style="float: right;">
+                        <Page v-bind:total="count" show-total show-elevator v-bind:current="formSearch.from" v-bind:page-size="formSearch.size" @@on-change="changePage"></Page>
+                    </div>
+                </div>
+            </Card>
+            <Modal v-model="insertProductModal.isShow"
+                   title="添加材料"
+                   v-bind:width="900">
+                <i-Form ref="insertProductModal" v-bind:model="insertProductModal.data" v-bind:label-width="100">
+                    <Row>
+                        <i-Col span="12">
+                            <Form-Item label="材料编号"
+                                       prop="Material"
+                                       rules="{ required: true, message: '请输入材料名称', trigger: 'blur' }">
+                                <i-Input v-model="insertProductModal.data.Material" placeholder="请输入材料编号"></i-Input>
+                            </Form-Item>
+                        </i-Col>
+                        <i-Col span="12">
+                            <Form-Item label="数量"
+                                       prop="Number"
+                                       rules="{ required: true, message: '请输入数量', trigger: 'blur' }">
+                                <i-Input v-model="insertProductModal.data.Number" placeholder="请输入数量"></i-Input>
+                            </Form-Item>
+                        </i-Col>
+                        <i-Col span="12">
+                            <Form-Item label="交货时间"
+                                       prop="DeliveryDate">
+                                <Date-Picker type="date" v-model="insertProductModal.data.DeliveryDate" placeholder="请选择交货日期" style="width: 200px"></Date-Picker>
+                            </Form-Item>
+                        </i-Col>
+                        <i-Col span="12">
+                            <Form-Item label="备注">
+                                <i-Input v-model="insertProductModal.data.Remark" placeholder="请输入备注"></i-Input>
+                            </Form-Item>
+                        </i-Col>
+                    </Row>
+                </i-Form>
+                <div slot="footer">
+                    <i-Button type="primary" v-bind:loading="insertProductModal.loading" @@click="Insert">添加</i-Button>
+                </div>
+            </Modal>
+            <Modal v-model="importOrderInfo.isShow" title="订单信息导入" v-bind:width="1200" style="overflow:auto">
+                @*<i-table v-bind:columns="importOrderInfo.columns" v-bind:data="importOrderInfo.data"></i-table>*@
+                <table>
+                    <thead>
+                        <tr>
+                            <th v-for="item in uploadData[0]">{{item}}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(item,index) in uploadData" v-show="index!=0">
+                            <td v-for="(subItem,subIndex) in item">
+                                    {{subItem}}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div slot="footer">
+                    <i-button @@click="uploadOrders" v-bind:loading="importOrderInfo.loading"></i-button>
+                </div>
+            </Modal>
+        </i-Content>
+        <i-Footer>
+            <div class="You-Footer-Content">
+                版权所有
+            </div>
+        </i-Footer>
+    </Layout>
+</Layout>
+@section templates{
+
+    <script type="text/x-template" id="orderProInfoTmp">
+        <div>
+            <i-table v-bind:columns="Columns" v-bind:data="data"></i-table>
+        </div>
+    </script>
+}
+
+@section scripts{
+    <script src="~/Content/components/orderproselector/orderproselector.js"></script>
+    <script>
+        Vue.component('orderproinfo', {
+            template: '#orderProInfoTmp',
+            props: ['data', 'status'],
+            data: function () {
+                let _self = this;
+                return {
+                    Columns: [
+                        {
+                            title: '项目编号',
+                            key: 'ProjectSerialId'
+                        },
+                        {
+                            title: '材料名称',
+                            key: 'Material'
+                        },
+                        {
+                            title: '数量',
+                            key: 'Number'
+                        },
+                        {
+                            title: '交货日期',
+                            key: 'DeliveryDate'
+                        },
+                        {
+                            title: '备注',
+                            key: 'Remark'
+                        }
+                        ,
+                        {
+                            title: '操作',
+                            render: (h, params) => {
+                                //if (_self.status == 1) {
+                                //    return h('Button', {
+                                //        on: {
+                                //            'click': function () {
+                                //                _self.receiveModel.data = $.extend(true, {}, params.row);
+                                //                _self.receiveModel.isShow = true;
+                                //            }
+                                //        }
+                                //    }, '提货')
+                                //}
+                                //else {
+                                //    return h('span', {}, '无')
+                                //}
+                            }
+                        }
+                    ],
+                    receiveModel: {
+                        isShow: false,
+                        loading: false,
+                        data: {}
+                    },
+                };
+            },
+            methods: {
+                receiveProduct: function (rowGuid) {
+                    let _self = this;
+                    _self.receiveModel.loading = true;
+                    axios.post('GetProduct', _self.receiveModel.data).then(function (response) {
+                        _self.$Message.success(response.data);
+                        if (response.data.indexOf('成功') != -1) {
+                            var item = _self.data.find(function (item) {
+                                return item.RowGuid == rowGuid;
+                            });
+                            item.GetNumber = item.GetNumber + _self.receiveModel.data.GetNumber;
+                            item.StockNumber = item.StockNumber - _self.receiveModel.data.GetNumber;
+                            if (item.GetNumber == item.Number) {
+                                item.Status = 1;
+                            }
+                        }
+                        _self.receiveModel.loading = false;
+                        _self.receiveModel.isShow = false;
+                    }).catch(function (error) {
+                        _self.$Message.error(error);
+                        _self.receiveModel.loading = false;
+                    })
+                },
+            }
+        });
+        $(function () {
+            var orderInfo = function () {
+                let defaultData = {
+                    formSearch: {
+                        from: 1,
+                        size: 10
+                    },
+                    formItem: {
+                        SerialId: '',
+                        Material: '',
+                        Number: '',
+                        DeliveryDate: '2018-04-08',
+                        Remark: ''
+                    }
+                }
+
+                vueInit = function () {
+                    var app = new Vue({
+                        el: '#app',
+                        data: function () {
+                            let _self = this;
+                            return {
+                                formSearch: $.extend(true, {}, defaultData.formSearch),
+                                Columns: [
+                                    {
+                                        type: 'expand',
+                                        width: 50,
+                                        render: (h, params) => {
+                                            return h('orderproinfo', {
+                                                props: {
+                                                    data: params.row.Items,
+                                                    status: 0
+                                                }
+                                            });
+                                        }
+                                    },
+                                    {
+                                        title: '订单号',
+                                        key: 'SerialId'
+                                    },
+                                    {
+                                        title: '项目号',
+                                        key: 'ProjectNo'
+                                    },
+                                    {
+                                        title: '版本',
+                                        key: 'Version'
+                                    },
+                                    {
+                                        title: '短文本',
+                                        key: 'ShortText'
+                                    },
+                                    {
+                                        title: '检查控制计划',
+                                        key: 'TestingPlan'
+                                    },
+                                    {
+                                        title: '是否开票',
+                                        key: 'IsTicket'
+                                    },
+                                    {
+                                        title: '友华交期',
+                                        key: 'YouhuaDate'
+                                    },
+                                    {
+                                        title: '备注',
+                                        key: 'Remark'
+                                    },
+                                    {
+                                        title: '操作',
+                                        width: 200,
+                                        render: (h, params) => {
+                                            if (params.row.Status == 0) {
+                                                return h('div', [
+                                                    h('Button', {
+                                                        props: {
+                                                            type: 'info'
+                                                        },
+                                                        on: {
+                                                            'click': function () {
+                                                                _self.insertProductModal.data = $.extend(true,
+                                                                    {},
+                                                                    defaultData.formItem,
+                                                                    { SerialId: params.row.SerialId });
+                                                                _self.insertProductModal.isShow = true;
+                                                            }
+                                                        }
+                                                    }, '添加材料'),
+                                                    h('Button', {
+                                                        props: {
+                                                            type: 'info'
+                                                        },
+                                                        on: {
+                                                            'click': function () {
+                                                                axios.post('AuditSheet', params.row).then(function (response) {
+                                                                    _self.searchInfo();
+                                                                    _self.$Message.success(response.data);
+                                                                }).catch(function (error) {
+                                                                    _self.$Message.error(error);
+                                                                })
+                                                            }
+                                                        }
+                                                    }, '审核')
+                                                ]);
+                                            } else {
+                                                return h('span', {}, '已审核');
+                                            }
+                                        }
+                                    }
+                                ],
+                                Data: [
+                                ],
+                                count: 0, //分页需要
+                                loadSearch: false, //表格查询的标记
+                                insertProductModal: {
+                                    isShow: false,
+                                    data: $.extend(true, {}, defaultData.formItem),
+                                    loading: false
+                                },
+                                importOrderInfo: {
+                                    isShow: false,
+                                    data: [],
+                                    loading: false,
+                                    columns: [
+                                    {
+                                        type: 'expand',
+                                        width: 50,
+                                        render: (h, params) => {
+                                            return h('orderproinfo', {
+                                                props: {
+                                                    data: params.row.Items,
+                                                    status: 0
+                                                }
+                                            });
+                                        }
+                                    },
+                                    {
+                                        title: '订单号',
+                                        key: 'SerialId'
+                                    },
+                                    {
+                                        title: '友华交期',
+                                        key: 'YouhuaDate'
+                                    },
+                                    {
+                                        title: '备注',
+                                        key: 'Remark'
+                                    }
+
+                                    ]
+                                },
+                                uploadFile: {
+                                    file: null,
+                                    loadingStatus: false
+                                },
+                                uploadData:[]
+                            }
+                        },
+                        methods: {
+                            loginOut: function () { //Layout需要用的方法
+                                let _self = this;
+                                alert(1);
+                            },
+                            query: function () {
+                                let _self = this;
+                                _self.loadSearch = true;
+                                axios.post('GetData', _self.formSearch).then(function (response) {
+                                    _self.Data = response.data.data
+                                    _self.count = response.data.count
+                                    _self.loadSearch = false;
+                                }).catch(function (error) {
+                                    console.log(error);
+                                    _self.loadSearch = false;
+                                });
+
+                            },
+                            changePage: function (currentPage) {
+                                let _self = this;
+                                _self.formSearch.from = currentPage;
+                                this.query();
+                            },
+                            insertPurchaseProduct: function () {
+                                let _self = this;
+                                _self.insertProductModal.loading = true;
+                                axios.post('InsertProduct', _self.insertProductModal.data).then(function (response) {
+                                    _self.insertProductModal.isShow = false;
+                                    _self.$Message.success('Success!');
+                                    _self.query();
+                                }).catch(function (error) {
+                                    _self.$Message.error(error);
+                                })
+                            },
+                            Insert: function () {
+                                let _self = this;
+                                _self.insertProductModal.loading = true;
+                                axios.post('InsertProductInfo', _self.insertProductModal.data).then(function (response) {
+                                    _self.insertProductModal.loading = false;
+                                    _self.insertProductModal.isShow = false;
+                                    _self.$Message.success('Success!');
+                                    _self.query();
+                                }).catch(function (error) {
+                                    _self.$Message.error(error);
+                                })
+                            },
+                            handleUpload: function (e) {
+                                let _self = this;
+                                _self.uploadFile.file = e;
+                                return false;
+                            },
+                            upload: function () {
+                                let _self = this;
+                                var reader = new FileReader();
+                                reader.onload = function (e) {
+                                    var excelTable = XLSX.read(e.target.result, { type: 'binary' })
+                                    let data = []
+                                    for (let item in excelTable.Sheets)
+                                    {
+                                        var sheet1 = excelTable.Sheets[item]
+                                        var result = /:([A-Z])(.*)$/i.exec(sheet1["!ref"])
+                                        var rowN = parseInt(result[2]);
+                                        var lastLetter = result[1].charCodeAt();
+                                       
+                                        for (let i = 1; i <= rowN; i++) {
+                                            for (let j = 65; j <= lastLetter ; j++) {
+                                                if (data[i - 1] == undefined) {
+                                                    data[i - 1] = [];
+                                                }
+                                                let wordKey = String.fromCharCode(j) + i;
+                                                if (sheet1[wordKey] == undefined) {
+                                                    data[i - 1][j - 65] = '';
+                                                } else {
+                                                    data[i - 1][j - 65] = sheet1[wordKey].w;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    _self.uploadData = data;
+                                    _self.importOrderInfo.isShow = true;
+                                }
+                                reader.readAsBinaryString(_self.uploadFile.file);
+                            },
+                            uploadOrders: function () {
+                                let self = this;
+                                axios.post('InsertOrders', self.uploadData).then(function (resp) {
+                                    self.importOrderInfo.isShow = false;
+                                })
+                            }
+                        },
+                        mounted() {
+                        },
+                    });
+                }
+                init = function () {
+                    vueInit();
+                }
+
+                return {
+                    init:init
+                }
+            }();
+            orderInfo.init();
+        })
+    </script>
+
+
+}

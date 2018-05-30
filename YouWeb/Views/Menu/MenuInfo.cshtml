@@ -1,0 +1,33 @@
+﻿@using YouModel.ViewModel;
+@model List<MenuInfoVm>
+<Row>
+    <i-col span="4">
+        <div class="layout-logo"></div>
+    </i-col>
+    <i-col span="16">
+        <i-Menu mode="horizontal" theme="dark" active-name="1">
+            @foreach (var item in Model)
+            {
+                
+                <Submenu>
+                    <template slot="title">
+                        <Icon type="stats-bars"></Icon>
+                        @item.MenuName
+                    </template>
+                    @foreach (var subItem in item.SubInfo)
+                    {
+                        <Menu-Item>
+                            <a href="@subItem.SubMenuUrl">@subItem.SubMenuName</a>
+                        </Menu-Item>
+                    }
+                </Submenu>
+            }
+        </i-Menu>
+    </i-col>
+    <i-col span="4">
+        <i-Button size="small" @@click="loginOut" class="You-Button-Hover">
+            <Icon type="person"></Icon>
+            测试
+        </i-Button>
+    </i-col>
+</Row>

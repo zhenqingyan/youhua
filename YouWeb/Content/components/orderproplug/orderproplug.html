@@ -1,0 +1,22 @@
+﻿<div>
+    <Row>
+        <i-col span="24">
+            <i-table v-bind:columns="Table.Columns" v-bind:data="Table.Data" v-bind:loading="Table.loading"></i-table>
+        </i-col>
+        <i-col span="24">
+            <div style="padding:10px">
+                <span>
+                    材料编号:{{currentMeteriaInfo.Material}}
+                </span>
+                <Tabs value="purchaseInfo">
+                    <Tab-Pane label="采购单" name="purchaseInfo">
+                        <purchaseinfo v-bind:orderproductguid="currentMeteriaInfo.RowGuid"></purchaseinfo>
+                    </Tab-Pane>
+                    <Tab-Pane label="工艺流转单" name="sheetInfo">
+                        <sheetplug v-bind:orderproductguid="currentMeteriaInfo.RowGuid" @refresh="Query"></sheetplug>
+                    </Tab-Pane>
+                </Tabs>
+            </div>
+        </i-col>
+    </Row>
+</div>
