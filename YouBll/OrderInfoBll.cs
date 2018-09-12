@@ -16,11 +16,15 @@ namespace YouBll
         private OrderInfoDal _orderInfoDal;
         private OrderProductInfoDal _orderProductInfoDal;
         private OrderProductRelationDal _orderRelationDal;
+        private PurchaseInfoDal _purchaseInfoDal;
+        private SheetInfoDal _sheetInfoDal;
         public OrderInfoBll()
         {
             _orderProductInfoDal = new OrderProductInfoDal();
             _orderRelationDal = new OrderProductRelationDal();
             _orderInfoDal = new OrderInfoDal();
+            _purchaseInfoDal = new PurchaseInfoDal();
+            _sheetInfoDal = new SheetInfoDal();
         }
 
         /// <summary>
@@ -44,7 +48,7 @@ namespace YouBll
                         item.Items.Add(YouCommon.CommonFunction.ConvertModel<OrderProductInfo, OrderProductInfoVm>(orderProduct));
                     }
                 }
-                if (item.Items.Count > 0 && item.Items.All(o => o.Status == 1))
+                if (item.Items.Count > 0 && item.Items.All(o => o.Status == 3))
                 {
                     item.Status = 1;
                     item.DeliveryStatus = 1;
@@ -59,26 +63,31 @@ namespace YouBll
                 }
                 if (item.Status != 1)
                 {
-                    var firstItem = item.Items.Where(o => o.Status != 1).OrderBy(o => o.DeliveryDate).FirstOrDefault();
-                    if (firstItem != null)
+                    var checkItems = item.Items.Where(o => o.Status != 3);
+                    foreach (var checkItem in checkItems)
                     {
-                        var ts = DateTime.Parse(firstItem.DeliveryDate) - DateTime.Now;
-                        if (ts.TotalDays <= 0)
-                        {
-                            item.DeliveryStatus = 4;
-                        }
-                        else if (ts.TotalDays > 0 && ts.TotalDays <= 7)
+                        TimeSpan ts = DateTime.Parse(checkItem.DeliveryDate) - DateTime.Now;
+                        var purchaseFlag = !_purchaseInfoDal.GetData("where OrderProductGuid=@OrderProductGuid", new { OrderProductGuid = checkItem.RowGuid }).Any();
+                        if (ts.TotalDays <= 20 && purchaseFlag)
                         {
                             item.DeliveryStatus = 3;
+                            break;
                         }
-                        else if (ts.TotalDays > 7)
+                        var sheetFlag = !_sheetInfoDal.GetData("where OrderProductGuid=@OrderProductGuid", new { OrderProductGuid = checkItem.RowGuid }).Any();
+                        if (ts.TotalDays <= 10 && sheetFlag)
+                        {
+                            item.DeliveryStatus = 3;
+                            break;
+                        }
+                        if (ts.TotalDays <= 3 && checkItem.AuditNumber != checkItem.Number)
+                        {
+                            item.DeliveryStatus = 3;
+                            break;
+                        }
+                        if (purchaseFlag || sheetFlag)
                         {
                             item.DeliveryStatus = 2;
                         }
-                    }
-                    else
-                    {
-                        item.DeliveryStatus = 0;
                     }
                 }
             }
@@ -144,8 +153,37 @@ namespace YouBll
             return true;
         }
 
-        public bool InsertOrderInfos(string[][] orderInfos, UserInfoVm user)
+        public string InsertOrderInfos(string[][] orderInfos, UserInfoVm user)
         {
+            var result = 0;
+            int orderInfex = 0;
+            int projectIndex = 0;
+            int deliveryIndex = 0;
+            int materialIndex = 0;
+            int numberIndix = 0;
+            for (int j = 0; j < orderInfos[0].Length; j++)
+            {
+                if (orderInfos[0][j] == "订单")
+                {
+                    orderInfex = j;
+                }
+                else if (orderInfos[0][j] == "项目")
+                {
+                    projectIndex = j;
+                }
+                else if (orderInfos[0][j] == "交货日期")
+                {
+                    deliveryIndex = j;
+                }
+                else if (orderInfos[0][j] == "物料")
+                {
+                    materialIndex = j;
+                }
+                else if (orderInfos[0][j] == "数量")
+                {
+                    numberIndix = j;
+                }
+            }
             Dictionary<string, OrderInfo> dicOrderInfo = new Dictionary<string, OrderInfo>();
             for (int i = 0; i < orderInfos.Length; i++)
             {
@@ -153,21 +191,29 @@ namespace YouBll
                 {
                     continue;
                 }
+                var orderNoStr = orderInfos[i][orderInfex];
+                var projectNoStr = orderInfos[i][projectIndex];
+                var deliveryDateStr = orderInfos[i][deliveryIndex];
+                var materialStr = orderInfos[i][materialIndex];
+                var numberStr = orderInfos[i][numberIndix];
                 DateTime deliveryDate;
-                if (!DateTime.TryParse(orderInfos[i][3].Replace('/', '-'),out deliveryDate))
+                var timeStr = deliveryDateStr.Split('/');
+                var dateStr = "20" + timeStr[2] + "-" + timeStr[0].PadLeft(2, '0') + "-" + timeStr[1].PadLeft(2, '0');
+
+                if (!DateTime.TryParse(dateStr, out deliveryDate))
                 {
                     deliveryDate = DateTime.MinValue;
                 }
-
                 var orderInfo = new OrderInfo()
                 {
                     CreateTime = DateTime.Now,
                     Creator = user.UserName,
-                    SerialId = orderInfos[i][0],
+                    SerialId = orderNoStr,
                     Modifier = user.UserName,
                     ModifyTime = DateTime.Now,
-                    RowGuid= Guid.NewGuid().ToString(),
+                    RowGuid = Guid.NewGuid().ToString(),
                 };
+
                 OrderInfo tempOrderInfo;
                 if (dicOrderInfo.ContainsKey(orderInfo.SerialId))
                 {
@@ -175,19 +221,34 @@ namespace YouBll
                 }
                 else
                 {
+                    var orderInfoVm = _orderInfoDal.GetData("where SerialId=@SerialId limit 1", new { SerialId = orderNoStr }).FirstOrDefault();
+                    if (orderInfoVm == null)
+                    {
+                        _orderInfoDal.Insert(orderInfo);
+                    }
+                    else
+                    {
+                        orderInfo.RowGuid = orderInfoVm.RowGuid;
+                    }
                     dicOrderInfo.Add(orderInfo.SerialId, orderInfo);
                     tempOrderInfo = orderInfo;
-                    _orderInfoDal.Insert(orderInfo);
                 }
+                var tempProduct = _orderRelationDal.GetData("where OrderGuid=@OrderGuid and ProjectSerialid=@ProjectSerialid",
+                    new { OrderGuid = tempOrderInfo.RowGuid, ProjectSerialid = projectNoStr }).FirstOrDefault();
+                if (tempProduct != null)
+                {
+                    continue;
+                }
+
                 var productInfo = new OrderProductInfo()
                 {
-                    ProjectSerialId= orderInfos[i][1],
+                    ProjectSerialId = projectNoStr,
                     CreateTime = DateTime.Now,
                     DeliveryDate = deliveryDate,
                     IsDel = 0,
-                    Material = orderInfos[i][4],
-                    Number = int.Parse(orderInfos[i][8]),
-                    Remark = $"{orderInfos[0][5]}:{orderInfos[i][5]},{orderInfos[0][6]}:{orderInfos[i][6]},{orderInfos[0][7]}:{orderInfos[i][7]},{orderInfos[0][9]}:{orderInfos[i][9]},{orderInfos[0][10]}:{orderInfos[i][10]},{orderInfos[0][11]}:{orderInfos[i][11]},{orderInfos[0][12]}:{orderInfos[i][12]},{orderInfos[0][13]}:{orderInfos[i][13]},{orderInfos[0][14]}:{orderInfos[i][14]}",
+                    Material = materialStr,
+                    Number = int.Parse(numberStr),
+                    Remark = GetRemarkInfo(i, orderInfos),
                     RowGuid = Guid.NewGuid().ToString()
                 };
                 var relation = new OrderProductRelation()
@@ -197,13 +258,78 @@ namespace YouBll
                     Number = 0,
                     OrderGuid = tempOrderInfo.RowGuid,
                     OrderProductInfoGuid = productInfo.RowGuid,
+                    ProjectSerialid = projectNoStr,
                     RowGuid = Guid.NewGuid().ToString(),
                     Status = 0
                 };
                 _orderRelationDal.Insert(relation);
                 _orderProductInfoDal.Insert(productInfo);
+                result++;
             }
-            return true;
+            return "添加数量:" + result;
+        }
+        private string GetRemarkInfo(int i, string[][] data)
+        {
+            var sb = new StringBuilder();
+            for (int j = 0; j < data[i].Length; j++)
+            {
+                if (data[0][j] != "订单"
+                    && data[0][j] != "项目"
+                    && data[0][j] != "交货日期"
+                    && data[0][j] != "物料"
+                    && data[0][j] != "数量")
+                {
+                    sb.Append($"{data[0][j]}:{data[i][j]}    ");
+                }
+
+            }
+            return sb.ToString();
+        }
+
+        public string AuditProduct(OrderProductInfoVm entity)
+        {
+            var model = _orderProductInfoDal.GetSingle(entity.RowGuid);
+            if ((model.AuditNumber + entity.AuditNumber) > entity.Number)
+            {
+                return "超过检验最大数量";
+            }
+            else
+            {
+                model.AuditNumber += entity.AuditNumber;
+                if (model.AuditNumber >= entity.Number)
+                {
+                    model.Status = 2;
+                }
+                if (_orderProductInfoDal.Update(model))
+                {
+                    return "检验成功";
+                }
+                else
+                {
+                    return "检验失败";
+                }
+            }
+        }
+        public string DeliverProduct(OrderProductInfoVm entity)
+        {
+            var model = _orderProductInfoDal.GetSingle(entity.RowGuid);
+            if (model.Status != 2)
+            {
+                return "还未全部检验完毕";
+            }
+            else
+            {
+                model.FinishNumber = model.Number;
+                model.Status = 3;
+                if (_orderProductInfoDal.Update(model))
+                {
+                    return "发货成功";
+                }
+                else
+                {
+                    return "发货失败";
+                }
+            }
         }
     }
 }
